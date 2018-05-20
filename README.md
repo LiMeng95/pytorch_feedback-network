@@ -16,6 +16,8 @@ This is a pytorch implementation of [Feedback-Network](http://feedbacknet.stanfo
 - Run：
   - Run `classifier_train.py`
 
+  ​
+
   ```python
   python FeedbackNet_train.py
   ```
@@ -36,6 +38,8 @@ This is a pytorch implementation of [Feedback-Network](http://feedbacknet.stanfo
   - Put the checkpoint files under folder `./models/`, and specify the checkpoints file path by setting parameter `params.ckpt` in file `classifier_train.py`. You can download my baseline model [here](https://cloud.tsinghua.edu.cn/f/8b1affe99ba5494ba636/)
   - Run `classifier_train.py`
 
+  ​
+
   ```python
   python FeedbackNet_test.py
   ```
@@ -48,6 +52,11 @@ This is a pytorch implementation of [Feedback-Network](http://feedbacknet.stanfo
 | :------:   | :----:   | :----: | :----: | :----: |
 | 12 / 48 (stack-3;iteration=4) | 71.12%|91.51%|70.92%|92.02%|
 
+### To Do
+
+- [ ] Skip connections
+- [ ] Multi-GPU
+- [ ] Other virtual depths
 
 ### Reference
 
