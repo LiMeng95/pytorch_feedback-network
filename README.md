@@ -16,8 +16,6 @@ This is a pytorch implementation of [Feedback-Network](http://feedbacknet.stanfo
 - Run：
   - Run `classifier_train.py`
 
-  ​
-
   ```python
   python FeedbackNet_train.py
   ```
@@ -36,9 +34,7 @@ This is a pytorch implementation of [Feedback-Network](http://feedbacknet.stanfo
 - Evaluate on CIFAR100 dataset：
 
   - Put the checkpoint files under folder `./models/`, and specify the checkpoints file path by setting parameter `params.ckpt` in file `classifier_train.py`. You can download my baseline model [here](https://cloud.tsinghua.edu.cn/f/8b1affe99ba5494ba636/)
-  - Run `classifier_train.py`
-
-  ​
+  - Run `classifier_train.py`​
 
   ```python
   python FeedbackNet_test.py
