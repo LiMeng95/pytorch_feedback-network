@@ -51,7 +51,7 @@ This is a pytorch implementation of [Feedback-Network](http://feedbacknet.stanfo
 ### To Do
 
 - [ ] Skip connections
-- [ ] Multi-GPU
+- [x] Multi-GPU
 - [ ] Other virtual depths
 
 ### Reference

@@ -4,6 +4,7 @@ import os
 import numpy as np
 
 import torch as t
+import torch.nn as nn
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torch.autograd import Variable
 from torchnet import meter
@@ -27,7 +28,7 @@ class TrainParams(object):
     lr_scheduler = None         # should be an instance of ReduceLROnPlateau or _LRScheduler
 
     # params based on your local env
-    use_gpu = False             # default do not use gpu
+    gpus = []                   # default to use CPU mode
     save_dir = './models/'            # default `save_dir`
 
     # loading existing checkpoint
@@ -72,13 +73,18 @@ class Trainer(object):
             logger.info('Load ckpt from {}'.format(ckpt))
 
         # meters
+        self.num_iter = self.model.num_iterations
         self.loss_meter = meter.AverageValueMeter()
         # self.confusion_matrix = [meter.ConfusionMeter(100), meter.ConfusionMeter(100),
         #                          meter.ConfusionMeter(100), meter.ConfusionMeter(100)]
 
         # set CUDA_VISIBLE_DEVICES
-        if self.params.use_gpu:
-            logger.info('Set CUDA_VISIBLE_DEVICES to 0...')
+        if len(self.params.gpus) > 0:
+            gpus = ','.join([str(x) for x in self.params.gpus])
+            os.environ['CUDA_VISIBLE_DEVICES'] = gpus
+            self.params.gpus = tuple(range(len(self.params.gpus)))
+            logger.info('Set CUDA_VISIBLE_DEVICES to {}...'.format(gpus))
+            self.model = nn.DataParallel(self.model, device_ids=self.params.gpus)
             self.model = self.model.cuda()
 
         self.model.train()
@@ -89,7 +95,7 @@ class Trainer(object):
         for epoch in range(self.last_epoch, self.params.max_epoch):
 
             self.loss_meter.reset()
-            # for i in range(self.model.num_iterations):
+            # for i in range(self.num_iter):
             #     self.confusion_matrix[i].reset()
 
             self.last_epoch += 1
@@ -129,7 +135,7 @@ class Trainer(object):
 
     def _train_one_epoch(self):
         self.model.train()
-        train_correct = np.zeros(self.model.num_iterations)
+        train_correct = np.zeros(self.num_iter)
         train_total = 0
         gamma = 1
 
@@ -138,7 +144,7 @@ class Trainer(object):
             inputs = Variable(data)
             target = Variable(label)
             loss = Variable(t.from_numpy(np.zeros(1))).float()
-            if self.params.use_gpu:
+            if len(self.params.gpus) > 0:
                 inputs = inputs.cuda()
                 target = target.cuda()
                 loss = loss.cuda()
@@ -156,34 +162,34 @@ class Trainer(object):
 
             # meters update
             self.loss_meter.add(loss.data[0])
-            # for i in range(self.model.num_iterations):
+            # for i in range(self.num_iter):
             #     self.confusion_matrix[i].add(outputs[i].data, target.data)
 
             # calculate correct number
             train_total += target.size(0)
-            for it in range(self.model.num_iterations):
+            for it in range(self.num_iter):
                 _, predicted = t.max(outputs[it].data, 1)
                 train_correct[it] += (predicted == target.data).sum()
 
-        for it in range(self.model.num_iterations):
+        for it in range(self.num_iter):
             print('Train accuracy for iteration %i: %f %%' % (it, 100 * train_correct[it] / train_total))
 
     def _val_one_epoch(self):
         self.model.eval()
         logger.info('Val on validation set...')
-        correct_tp1 = np.zeros(self.model.num_iterations)
-        correct_tp5 = np.zeros(self.model.num_iterations)
+        correct_tp1 = np.zeros(self.num_iter)
+        correct_tp5 = np.zeros(self.num_iter)
         total = 0
 
         for step, (data, label) in enumerate(self.val_data):
             # val model
             inputs = Variable(data, volatile=True)
-            if self.params.use_gpu:
+            if len(self.params.gpus) > 0:
                 inputs = inputs.cuda()
 
             outputs = self.model(inputs)
             total += label.size(0)
-            for it in range(self.model.num_iterations):
+            for it in range(self.num_iter):
                 for p_index, p in enumerate(outputs[it].data):
                     p = p.view(1, 100)
                     if label[p_index] in p.topk(1)[1].squeeze().tolist():
@@ -192,8 +198,8 @@ class Trainer(object):
                     elif label[p_index] in p.topk(5)[1].squeeze().tolist():
                         correct_tp5[it] += 1
 
-        for it in range(self.model.num_iterations):
+        for it in range(self.num_iter):
             print('Test accuracy(tp1) for iteration %i: %f %%' % (it, 100 * correct_tp1[it] / total))
 
-        for it in range(self.model.num_iterations):
+        for it in range(self.num_iter):
             print('Test accuracy(tp5) for iteration %i: %f %%' % (it, 100 * correct_tp5[it] / total))

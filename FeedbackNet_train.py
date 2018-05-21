@@ -10,7 +10,7 @@ from network import FeedbackNet
 # Hyper-params
 data_root = './data/'
 save_dir = './models/'
-batch_size = 64  # 128
+batch_size = 64  # batch_size in per GPU, if use GPU mode
 num_workers = 4
 
 init_lr = 0.6  # 0.6
@@ -23,7 +23,7 @@ nesterov = True
 params = Trainer.TrainParams()
 params.max_epoch = 300
 params.criterion = nn.CrossEntropyLoss()
-params.use_gpu = True
+params.gpus = [0]  # set 'params.gpus=[]' to use CPU mode
 params.save_dir = save_dir
 params.ckpt = None
 params.save_freq_epoch = 10
@@ -32,6 +32,8 @@ params.save_freq_epoch = 10
 print("Loading dataset...")
 train_data = cifar100_train_data
 val_data = cifar100_test_data
+
+batch_size = batch_size if len(params.gpus) == 0 else batch_size*len(params.gpus)
 
 train_dataloader = DataLoader(train_data, batch_size=batch_size, shuffle=True, num_workers=num_workers)
 print('train dataset len: {}'.format(len(train_dataloader.dataset)))
